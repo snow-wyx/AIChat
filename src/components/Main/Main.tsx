@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import Composer from "./Composer/Composer"
 import type { Message } from "../../types/types"
 import { uid } from "../../utils/uid"
+import "./Main.css"
 function Main() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
@@ -45,14 +46,17 @@ function Main() {
 
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ flex: 1, overflow: "auto" }}>
+    <div className="message-list">
+      <div className="messages">
 
         {messages.map((m) => (
-          <div key={m.id}>
-            <strong>{m.role === "user" ? "You" : "Assistant"}:</strong>{" "}
-            <span>{m.content || (m.role === "assistant" ? "..." : "")}</span>
+          <div className={`msg-row ${m.role === "user" ? "is-user" : "is-assistant"}`} key={m.id} >
+            <div className={`msg-bubble ${m.role === "user" ? "is-user" : "is-assistant"}`}>
+              <strong>{m.role === "user" ? "You" : "Assistant"}:</strong>{" "}
+              <span>{m.content || (m.role === "assistant" ? "..." : "")}</span>
+            </div>
           </div>
+
         ))}
         {/*用于在发送消息时将自动滚动到最新消息*/}
         <div ref={bottomRef} />

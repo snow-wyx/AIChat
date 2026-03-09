@@ -1,0 +1,39 @@
+.msg-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.msg-row.is-user {
+  justify-content: flex-end;
+}
+
+.msg-row.is-assistant {
+  justify-content: flex-start;
+}
+
+.msg-bubble {
+  max-width: 70%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+}
+
+.msg-bubble.is-user {
+  background-color: skyblue;
+}
+
+.msg-bubble.is-assistant {
+  background-color: rgb(209, 209, 209);
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
