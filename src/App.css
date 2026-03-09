@@ -1,0 +1,15 @@
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  border-right: 1px solid #e5e7eb;
+  background-color: bisque;
+}
+
+.main {
+  flex: 1;
+  background-color: aqua;
+}

@@ -1,0 +1,22 @@
+.composer {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px;
+}
+
+.composer-box {
+  position: relative;
+}
+
+.composer-textarea {
+
+  padding-right: 44px;
+  /* 给按钮留位置 */
+  padding-bottom: 36px;
+  /* 给按钮留位置 */
+}
+
+.composer-send {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
