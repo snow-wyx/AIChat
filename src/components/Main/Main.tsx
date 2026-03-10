@@ -3,6 +3,7 @@ import Composer from "./Composer/Composer"
 import type { Message } from "../../types/types"
 import { uid } from "../../utils/uid"
 import "./Main.css"
+import { fakeChatReply } from "../../services/fakeChat"
 function Main() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
@@ -13,7 +14,7 @@ function Main() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length])
   //发送时，获取并渲染用户消息、助手消息，清空输入框
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim()
     if (!text || generating) return
     setGenerating(true)
@@ -33,17 +34,25 @@ function Main() {
     setMessages(prev => [...prev, userMsg, assistantMsg])
     setInput("")
     //模拟异步回复
-    setTimeout(() => {
+    try {
+      const reply = await fakeChatReply(text);
+
       setMessages((prev) =>
-        prev.map((m) => m.id === assistantId ? { ...m, content: `（模拟回复）我收到：${text}` } : m
+        prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m))
+      );
+    } catch (e) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, content: "出错了，请重试" } : m
         )
-      )
-      setGenerating(false)
-    }, 300)
+      );
+    } finally {
+      setGenerating(false);
+    }
+
     //return渲染message，Message+Composer
 
   }
-
 
   return (
     <div className="message-list">
