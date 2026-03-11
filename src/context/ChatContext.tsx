@@ -22,7 +22,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         id: sessionId,
         createdAt: Date.now(),
         messages: [],
-        title: "new chat"
+        title: `New Chat 1`
       }
     ]
   }
@@ -80,7 +80,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const id = uid();
     const newSession: Session = {
       id,
-      title: "New Chat",
+      title: `New Chat ${sessions.length + 1}`,
       createdAt: Date.now(),
       messages: [],
     }
