@@ -1,5 +1,7 @@
-import { createContext, useContext, useState } from "react";
-import type { Message, Session } from "../types/types.ts";
+const LS_SESSIONS_KEY = "aichat:sessions"
+const LS_ACTIVE_ID_KEY = "aichat:activeSessionId"
+import { createContext, useContext, useState, useEffect } from "react"
+import type { Message, Session } from "../types/types.ts"
 import { uid } from "../utils/uid.ts"
 import { fakeChatReply } from "../services/fakeChat.ts"
 interface ChatContextValue {
@@ -16,18 +18,48 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue | null>(null)
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<Session[]>(() => {
-    const sessionId = uid()
+    //判断本地是否有会话，有从本地调取，没用则默认一个新会话
+    const raw = localStorage.getItem(LS_SESSIONS_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Session[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        // 解析失败就走默认
+      }
+    }
+    const firstId = uid();
     return [
       {
-        id: sessionId,
+        id: firstId,
+        title: "New Chat",
         createdAt: Date.now(),
         messages: [],
-        title: `New Chat 1`
-      }
-    ]
-  }
-  )
-  const [activeSessionId, setActiveSessionId] = useState(sessions[0].id)
+      },
+    ];
+  })
+
+
+  const [activeSessionId, setActiveSessionId] = useState(() => {
+    const saved = localStorage.getItem(LS_ACTIVE_ID_KEY);
+    if (saved) return saved;
+    return sessions[0]?.id ?? ""
+
+  })
+  //localStorage.setItem(key, value),因为 sessions 是数组，不是字符串，不能直接存,先把它转成 JSON 字符串
+  useEffect(() => {
+    localStorage.setItem(LS_SESSIONS_KEY, JSON.stringify(sessions));
+  }, [sessions]);
+
+  useEffect(() => {
+    localStorage.setItem(LS_ACTIVE_ID_KEY, activeSessionId);
+  }, [activeSessionId]);
+  //防止 activeSessionId 指向不存在的会话
+  useEffect(() => {
+    if (!sessions.length) return;
+    const exists = sessions.some((s) => s.id === activeSessionId);
+    if (!exists) setActiveSessionId(sessions[0].id);
+  }, [sessions, activeSessionId]);
 
   const activeMessages = sessions.find((s) => s.id === activeSessionId)?.messages ?? [];
   /*等价于const currentSession = sessions.find((s) => s.id === activeSessionId)
@@ -70,9 +102,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         prev.map((s) => s.id === activeSessionId ? { ...s, messages: s.messages.map((m) => (m.id === assistantId ? { ...m, content: "出错了，请重试！" } : m)) } : s)
       )
     }
-    //   finally {
-    //   setGenerating(false);
-    // }
+    finally {
+      setGenerating(false);
+    }
     //新增会话处理
 
   }
