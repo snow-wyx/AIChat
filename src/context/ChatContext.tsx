@@ -1,9 +1,9 @@
 const LS_SESSIONS_KEY = "aichat:sessions"
 const LS_ACTIVE_ID_KEY = "aichat:activeSessionId"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useRef } from "react"
 import type { Message, Session } from "../types/types.ts"
 import { uid } from "../utils/uid.ts"
-import { fakeChatReply } from "../services/fakeChat.ts"
+import { streamChatReply } from "../services/fakeChat.ts"
 interface ChatContextValue {
   sessions: Session[],
   activeSessionId: string,
@@ -13,10 +13,12 @@ interface ChatContextValue {
   setInput: (text: string) => void,
   sendMessage: (msg: string) => Promise<void>,
   createSession: () => void,
-  selectSession: (id: string) => void
+  selectSession: (id: string) => void,
+  stopGenerating: () => void
 }
 const ChatContext = createContext<ChatContextValue | null>(null)
 export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const abortRef = useRef<AbortController | null>(null);
   const [sessions, setSessions] = useState<Session[]>(() => {
     //判断本地是否有会话，有从本地调取，没用则默认一个新会话
     const raw = localStorage.getItem(LS_SESSIONS_KEY);
@@ -38,8 +40,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       },
     ];
   })
-
-
   const [activeSessionId, setActiveSessionId] = useState(() => {
     const saved = localStorage.getItem(LS_ACTIVE_ID_KEY);
     if (saved) return saved;
@@ -67,6 +67,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [input, setInput] = useState("")
   const [generating, setGenerating] = useState(false)
   const sendMessage = async (msg: string) => {
+    let renderBuffer = ""
+    let flushTimer: number | null = null
+    const controller = new AbortController()
+    abortRef.current = controller
     const trimmed = msg.trim()
     if (!trimmed || generating) return
     setGenerating(true)
@@ -87,23 +91,57 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       prev.map((s) => s.id === activeSessionId ? { ...s, messages: [...s.messages, userMsg, assistantMsg] } : s)
     )
     setInput("")
-    //模拟异步回复
-    const reply = await fakeChatReply(trimmed)
-    setSessions(prev =>
-      prev.map((s) => s.id === activeSessionId ? { ...s, messages: s.messages.map((m) => (m.id === assistantId ? { ...m, content: reply } : m)) } : s)
-    )
-    try {
-      const reply = await fakeChatReply(trimmed)
-      setSessions(prev =>
-        prev.map((s) => s.id === activeSessionId ? { ...s, messages: s.messages.map((m) => (m.id === assistantId ? { ...m, content: reply } : m)) } : s)
-      )
-    } catch (e) {
-      setSessions(prev =>
-        prev.map((s) => s.id === activeSessionId ? { ...s, messages: s.messages.map((m) => (m.id === assistantId ? { ...m, content: "出错了，请重试！" } : m)) } : s)
+    //渲染节流 不每次都渲染
+    const flush = () => {
+      if (!renderBuffer) return
+
+      const chunk = renderBuffer
+      renderBuffer = ""
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id !== activeSessionId
+            ? s
+            : {
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === assistantId ? { ...m, content: (m.content ?? "") + chunk } : m
+              ),
+            }
+        )
       )
     }
+    const startFlush = () => {
+      if (flushTimer != null) return
+      flushTimer = window.setInterval(flush, 50)
+    }
+    const stopFlush = () => {
+      if (flushTimer != null) {
+        window.clearInterval(flushTimer)
+        flushTimer = null
+      }
+      flush() // streamChatReply 结束（await 返回）并不保证“刚好卡在一次 flush 之后,所以把最后剩余的一次性刷出去
+    }
+    //模拟异步回复
+    try {
+      await streamChatReply(trimmed, (delta) => {
+        renderBuffer += delta
+        startFlush()
+      }, controller.signal)
+      stopFlush()
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        // Stop:保留已生成内容
+      } else {
+        setSessions(prev =>
+          prev.map((s) => s.id === activeSessionId ? { ...s, messages: s.messages.map((m) => (m.id === assistantId ? { ...m, content: "出错了，请重试！" } : m)) } : s)
+        )
+      }
+    }
     finally {
-      setGenerating(false);
+      setGenerating(false)
+      abortRef.current = null
+      stopFlush()
     }
     //新增会话处理
 
@@ -123,8 +161,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const selectSession = (id: string) => {
     setActiveSessionId(id);
   }
+  //终止生成
+  const stopGenerating = () => {
+    abortRef.current?.abort()
+  }
   return (
-    <ChatContext.Provider value={{ sessions, input, generating, setInput, createSession, selectSession, sendMessage, activeMessages, activeSessionId }}>
+    <ChatContext.Provider value={{ sessions, input, generating, setInput, createSession, selectSession, sendMessage, activeMessages, activeSessionId, stopGenerating }}>
       {children}
     </ChatContext.Provider>
   )

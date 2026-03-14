@@ -3,7 +3,7 @@ import Composer from "./Composer/Composer"
 import "./Main.css"
 import { useChat } from "../../context/ChatContext"
 function Main() {
-  const { sessions, input, generating, setInput, createSession, selectSession, sendMessage, activeMessages, activeSessionId } = useChat()
+  const { sessions, input, generating, setInput, createSession, selectSession, sendMessage, activeMessages, activeSessionId, stopGenerating } = useChat()
   const bottomRef = useRef<HTMLDivElement | null>(null) //用于在发送消息时将自动滚动到最新消息
   //监听messages的长度是否发生变化,在发生变化时滚回底部
   useEffect(() => {
@@ -24,6 +24,11 @@ function Main() {
         {/*用于在发送消息时将自动滚动到最新消息*/}
         <div ref={bottomRef} />
       </div>
+      {generating && (
+        <button onClick={stopGenerating} style={{ marginBottom: 8 }}>
+          Stop
+        </button>
+      )}
       <Composer value={input} onChange={setInput} onSend={() => sendMessage(input)} disabled={!input.trim() || generating} />
     </div>
 
