@@ -1,5 +1,5 @@
 import { Input, Button } from 'antd';
-import { ArrowUpOutlined } from "@ant-design/icons";
+import { ArrowUpOutlined, StopOutlined } from "@ant-design/icons";
 import './Composer.css'
 
 const { TextArea } = Input;
@@ -8,8 +8,10 @@ interface ComposerProps {
   onChange: (v: string) => void;
   onSend: () => void;
   disabled?: boolean;
+  generating: boolean;
+  onStop: () => void;
 }
-function Composer({ value, onChange, onSend, disabled }: ComposerProps) {
+function Composer({ value, onChange, onSend, disabled, generating, onStop }: ComposerProps) {
 
   return (
     <div className='composer'>
@@ -28,13 +30,25 @@ function Composer({ value, onChange, onSend, disabled }: ComposerProps) {
           placeholder="Type a message..."
 
         />
-        <Button className='composer-send'
-          type="primary"
-          shape="circle"
-          icon={<ArrowUpOutlined />}
-          disabled={disabled}
-          onClick={onSend}
-        />
+        {generating ? (
+          <Button
+            className="composer-send"
+            type="primary"
+            shape="circle"
+            icon={<StopOutlined />}
+            onClick={onStop}
+          />
+        ) : (
+          <Button
+            className="composer-send"
+            type="primary"
+            shape="circle"
+            icon={<ArrowUpOutlined />}
+            disabled={disabled}
+            onClick={onSend}
+          />
+        )}
+
       </div>
     </div>
   )

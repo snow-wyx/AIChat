@@ -20,3 +20,8 @@
   right: 12px;
   bottom: 12px;
 }
+
+.composer-send:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}

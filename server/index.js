@@ -29,7 +29,8 @@ app.post("/api/chat/stream", (req, res) => {
   */
   res.write(`data: ${JSON.stringify({ delta: "（流开始）" })}\n\n`);
   //模拟回复：准备一个完整字符串 full（用 text 拼一句话）
-  const full = `我收到：${text}。这是流式输出示例。`;
+  const full = `我收到：\n\n${text}\n\n这是流式输出示例。`
+  // const full = `下面是代码：\n\n\`\`\`ts\nconst a: number = 1;\nconsole.log(a);\n\`\`\`\n`;
   let i = 0;
   let closed = false;
   res.on("close", () => {
